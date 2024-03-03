@@ -5,7 +5,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: notebooks
+  name: notebook
   namespace: argo-cd
 spec:
   description: notebooks on Kubernetes
@@ -15,7 +15,7 @@ spec:
     - namespace: 'argo-cd'
       name: 'in-cluster'
       server: 'https://kubernetes.default.svc'
-    - namespace: 'notebooks'
+    - namespace: 'notebook'
       name: 'in-cluster'
       server: 'https://kubernetes.default.svc'
   clusterResourceWhitelist:
