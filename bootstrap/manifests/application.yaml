@@ -10,10 +10,10 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: notebooks
+  project: notebook
   destination:
     name: ''
-    namespace: notebooks
+    namespace: notebook
     server: 'https://kubernetes.default.svc'
   source:
     path: apps
