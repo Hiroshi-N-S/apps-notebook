@@ -36,9 +36,9 @@ spec:
             GenericOAuthenticator:
               client_id: jupyterhub
               client_secret: YaOOyN815GeuDf8LW8YvAAnyCc26YsbL
-              authorize_url: http://mysticstorage.local:8080/realms/cicd/protocol/openid-connect/auth
-              token_url: http://mysticstorage.local:8080/realms/cicd/protocol/openid-connect/token
-              userdata_url: http://mysticstorage.local:8080/realms/cicd/protocol/openid-connect/userinfo
+              authorize_url: http://mysticstorage.local:8080/realms/devops/protocol/openid-connect/auth
+              token_url: http://mysticstorage.local:8080/realms/devops/protocol/openid-connect/token
+              userdata_url: http://mysticstorage.local:8080/realms/devops/protocol/openid-connect/userinfo
               scope:
                 - openid
                 - profile
@@ -62,8 +62,6 @@ spec:
           annotations:
             kubernetes.io/ingress.class: nginx
             nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-            ingress.kubernetes.io/protocol: https
-            nginx.ingress.kubernetes.io/backend-protocol: https
           ingressClassName: nginx
           pathType: Prefix
         singleuser:
