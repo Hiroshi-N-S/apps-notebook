@@ -43,10 +43,11 @@ spec:
                 - openid
                 - profile
                 - roles
+                - groups
               username_claim: preferred_username
               userdata_params:
                 state: state
-              claim_groups_key: roles
+              claim_groups_key: groups
               admin_groups:
                 - jupyterhub-admin
               allowed_groups:
