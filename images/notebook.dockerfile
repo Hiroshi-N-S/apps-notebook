@@ -3,7 +3,9 @@
 # --- --- --- --- --- --- --- --- ---
 # deno builder image.
 #
-FROM rust:1.75-bookworm AS builder
+FROM rust:1.75.0-bookworm AS builder
+
+ENV CARGO_TARGET_DIR=/root/target
 
 WORKDIR /root
 RUN set -eux ;\
@@ -15,15 +17,14 @@ RUN set -eux ;\
         build-essential \
       ;\
       # --- --- --- --- --- --- --- --- ---
-      # build deno for JavaScript and TypeScript Runtime.
+      # build deno for TypeScript runtime.
       # --- --- --- --- --- --- --- --- ---
-      export CARGO_TARGET_DIR=/root/target ;\
-      cargo install deno --locked
+      cargo install deno@1.41.3 --locked
 
 # --- --- --- --- --- --- --- --- ---
 # notebook image.
 #
-FROM python:3.12.2-slim-bookworm
+FROM debian:bookworm-20240311-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -32,6 +33,7 @@ ENV https_proxy=
 ENV no_proxy=
 
 USER root
+WORKDIR /root
 RUN set -eux ;\
       # proxy config for apt
       echo "Acquire::http::Proxy \"$http_proxy\";" >>apt-proxy.conf ;\
@@ -41,52 +43,44 @@ RUN set -eux ;\
       apt update && apt install -y \
         sudo \
       ;\
-      # add user for jupyter.
-      useradd -m -s /bin/bash -u 1000 -g 100 jovyan ;\
+      # add a user for notebook.
+      useradd -m -s /usr/bin/bash jovyan ;\
       # add jovyan to sudoers.
       echo 'jovyan ALL=(ALL:ALL) NOPASSWD:ALL' >> jovyan ;\
       mkdir -p /etc/sudoers.d ;\
       mv jovyan /etc/sudoers.d
 
+ENV PATH=$PATH:/home/jovyan/.local/bin
+
 USER jovyan
 WORKDIR /home/jovyan
-ENV PATH=/home/jovyan/.local/bin:$PATH
 RUN set -eux ;\
       # --- --- --- --- --- --- --- --- ---
       # install Jupyter.
       # --- --- --- --- --- --- --- --- ---
-      pip install --upgrade pip ;\
-      pip install --no-warn-script-location \
-        jupyterhub==4.0.2 \
-        jupyterlab==4.0.2 \
+      sudo apt update && sudo apt install -y \
+        python3 \
+        python3-pip \
       ;\
-      mkdir -p /home/jovyan/work
+      pip install --break-system-packages --upgrade pip ;\
+      pip install --break-system-packages \
+        jupyterlab==4.0.2 \
+        jupyterhub==4.0.2
 
-ENV GO_VERSION=1.21.5
+ARG TARGETARCH
+ENV GO_VERSION=go1.21.5
+ENV PATH=$PATH:/usr/local/go/bin:/home/jovyan/go/bin
+
 RUN set -eux ;\
       sudo apt update && sudo apt install -y \
         wget \
-        curl \
-        build-essential \
       ;\
       # --- --- --- --- --- --- --- --- ---
       # install Go.
       # --- --- --- --- --- --- --- --- ---
-      wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz ;\
-      sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz ;\
-      rm go${GO_VERSION}.linux-amd64.tar.gz
-
-RUN set -eux ;\
-      # --- --- --- --- --- --- --- --- ---
-      # install Rust and Rust Kernel.
-      # --- --- --- --- --- --- --- --- ---
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y ;\
-      . /home/jovyan/.cargo/env ;\
-      cargo install evcxr_jupyter ;\
-      evcxr_jupyter --install
-
-ENV PATH=$PATH:/usr/local/go/bin:/home/jovyan/go/bin
-RUN set -eux ;\
+      wget https://go.dev/dl/${GO_VERSION}.linux-${TARGETARCH}.tar.gz ;\
+      sudo tar -C /usr/local -xzf ${GO_VERSION}.linux-${TARGETARCH}.tar.gz ;\
+      rm ${GO_VERSION}.linux-${TARGETARCH}.tar.gz ;\
       # --- --- --- --- --- --- --- --- ---
       # install Go Kernel.
       # --- --- --- --- --- --- --- --- ---
@@ -95,9 +89,21 @@ RUN set -eux ;\
       go install golang.org/x/tools/gopls@latest ;\
       gonb --install
 
+RUN set -eux ;\
+      sudo apt update && sudo apt install -y \
+        curl \
+      ;\
+      # --- --- --- --- --- --- --- --- ---
+      # install Rust and Rust Kernel.
+      # --- --- --- --- --- --- --- --- ---
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y ;\
+      . /home/jovyan/.cargo/env ;\
+      cargo install evcxr_jupyter ;\
+      evcxr_jupyter --install
+
 COPY --from=builder /usr/local/cargo/bin/deno /usr/local/bin/deno
 RUN set -eux ;\
       # --- --- --- --- --- --- --- --- ---
-      # install Deno Kernel for JavaScript and TypeScript.
+      # install Deno Kernel for TypeScript.
       # --- --- --- --- --- --- --- --- ---
-      deno jupyter --unstable --install
+      deno jupyter --install
